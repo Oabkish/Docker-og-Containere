@@ -20,3 +20,17 @@ if(!string.IsNullOrEmpty(connectionString))
 
 
 app.MapGet("/health", () ==> Results.Ok("Ok"));
+await using var conn = new NpgsqlConnection(connectionString);
+conn.Open();
+using var cmd = conn.CreateCommanf();
+cmd.CommandText="""
+Create Table if not exists items (
+id SERIAL PRIMARY KEY,
+name TEXT NOT NULL,
+created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+""";
+
+cmd.ExecuteNonQuery();
+
+app.MapGet("/health", () => Results.Ok("Ok"));
