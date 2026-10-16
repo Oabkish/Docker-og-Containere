@@ -1,64 +1,38 @@
-﻿using Npgsql;
+﻿using DemoApi.Contracts;
+using DemoApi.Data;
+using DemoApi.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("Postgres");
+
+builder.Services.AddDbContext<IItemRepository, ItemContext>(options =>
+{
+    options.UseNpgsql(connectionString);
+});
+builder.Services.AddScoped<ItemService>();
+
 var app = builder.Build();
 
-if(!string.IsNullOrEmpty(connectionString))
+if (!string.IsNullOrEmpty(connectionString))
 {
-    using var conn= new NpgsqlConnection(connectionString);
-    conn.Open();
-    using var cmd = conn.CreateCommand();
-    cmd.CommandText="""
-        CREATE TABLE IF NOT EXISTS items (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        );
-    """;
-    cmd.ExecuteNonQuery();
+    using var scope = app.Services.CreateScope();
+    var context = (ItemContext)scope.ServiceProvider.GetRequiredService<IItemRepository>();
+    context.Database.Migrate();
 }
-
-
 
 app.MapGet("/health", () => Results.Ok("Ok"));
 
-
-app.MapPost("/items", async (ItemRequest request) =>
+app.MapPost("/items", async (ItemRequest request, ItemService service) =>
 {
-await using var conn = new NpgsqlConnection(connectionString);
-await conn.OpenAsync();
-await using var cmd = conn.CreateCommand();
-cmd.CommandText = "INSERT INTO items (name) VALUES (@name) RETURNING id, created_at;";
-    cmd.Parameters.AddWithValue("name", request.Name);
-
-    await using var reader = await cmd.ExecuteReaderAsync();
-    await reader.ReadAsync();
-    var id = reader.GetInt32(0);
-    var createdAt = reader.GetDateTime(1);
-
-    return Results.Ok(new ItemResponse(id, request.Name, createdAt));
+    var response = await service.AddItemAsync(request);
+    return Results.Ok(response);
 });
 
-app.MapGet("/items", async () =>
+app.MapGet("/items", async (ItemService service) =>
 {
-    var items = new List<ItemResponse>();
-
-    await using var conn = new NpgsqlConnection(connectionString);
-    await conn.OpenAsync();
-    await using var cmd = conn.CreateCommand();
-    cmd.CommandText = "SELECT id, name, created_at FROM items ORDER BY id;";
-
-    await using var reader = await cmd.ExecuteReaderAsync();
-    while (await reader.ReadAsync())
-    {
-        items.Add(new ItemResponse(reader.GetInt32(0), reader.GetString(1), reader.GetDateTime(2)));
-    }
-
+    var items = await service.GetItemsAsync();
     return Results.Ok(items);
 });
 
-
 app.Run();
-
-record ItemRequest(string Name);
-record ItemResponse (int Id, string Name, DateTime Created );
