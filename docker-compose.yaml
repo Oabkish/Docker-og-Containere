@@ -16,6 +16,7 @@ services:
       dockerfile: Dockerfile
     environment:
       ConnectionStrings__Postgres: "Host=db;Port=5432;Database=demo;Username=demo;Password=demo"
+      ASPNETCORE_ENVIRONMENT: Development
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=PathPrefix(`/`)"
