@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Security.Claims;
+using System.Text;
+using DemoApi.Auth;
 using DemoApi.Contracts;
 using DemoApi.Data;
 using DemoApi.Services;
@@ -73,16 +75,27 @@ app.MapControllers();
 
 app.MapGet("/health", () => Results.Ok("Ok"));
 
-app.MapPost("/items", async (ItemRequest request, ItemService service) =>
+app.MapPost("/items", async (ItemRequest request, ClaimsPrincipal user, ItemService service) =>
 {
-    var response = await service.AddItemAsync(request);
+    var response = await service.AddItemAsync(request, user.GetUserId());
     return Results.Ok(response);
-});
+}).RequireAuthorization();
 
-app.MapGet("/items", async (ItemService service) =>
+app.MapGet("/items", async (ClaimsPrincipal user, ItemService service) =>
 {
-    var items = await service.GetItemsAsync();
+    var items = await service.GetItemsAsync(user.GetUserId());
     return Results.Ok(items);
-});
+}).RequireAuthorization();
 
+app.MapPut("/items/{id:int}", async (int id, ItemRequest request, ClaimsPrincipal user, ItemService service) =>
+{
+    var response = await service.UpdateItemAsync(id, request, user.GetUserId());
+    return response is null ? Results.NotFound() : Results.Ok(response);
+}).RequireAuthorization();
+
+app.MapDelete("/items/{id:int}", async (int id, ClaimsPrincipal user, ItemService service) =>
+{
+    var deleted = await service.DeleteItemAsync(id, user.GetUserId());
+    return deleted ? Results.NoContent() : Results.NotFound();
+}).RequireAuthorization();
 app.Run();
