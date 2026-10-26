@@ -6,6 +6,14 @@ namespace DemoApi.Data;
 public class ItemContext(DbContextOptions<ItemContext> options) : DbContext(options), IItemRepository
 {
     public DbSet<Item> Items { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.Username)
+            .IsUnique();
+    }
 
     public async Task<Item> AddItemAsync(string name, int userId)
     {
