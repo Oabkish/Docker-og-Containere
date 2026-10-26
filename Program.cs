@@ -20,6 +20,7 @@ builder.Services.AddScoped<ItemService>();
 builder.Services.AddSingleton<PasswordHasher>();
 builder.Services.AddScoped<IUserRepository>(sp => (ItemContext)sp.GetRequiredService<IItemRepository>());
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddSingleton<JwtService>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is missing in appsettings.json");
