@@ -17,6 +17,7 @@ builder.Services.AddDbContext<IItemRepository, ItemContext>(options =>
     options.UseNpgsql(connectionString);
 });
 builder.Services.AddScoped<ItemService>();
+builder.Services.AddSingleton<PasswordHasher>();
 
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("Jwt:Secret is missing in appsettings.json");
