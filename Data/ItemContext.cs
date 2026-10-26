@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DemoApi.Data;
 
-public class ItemContext(DbContextOptions<ItemContext> options) : DbContext(options), IItemRepository
+public class ItemContext(DbContextOptions<ItemContext> options) : DbContext(options), IItemRepository, IUserRepository
 {
     public DbSet<Item> Items { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
@@ -49,5 +49,18 @@ public class ItemContext(DbContextOptions<ItemContext> options) : DbContext(opti
         Items.Remove(item);
         await SaveChangesAsync();
         return true;
+    }
+
+    public async Task<User?> GetUserByUsernameAsync(string username)
+    {
+        return await Users.FirstOrDefaultAsync(u => u.Username == username);
+    }
+
+    public async Task<User> AddUserAsync(string username, string passwordHash)
+    {
+        var user = new User { Username = username, PasswordHash = passwordHash };
+        await Users.AddAsync(user);
+        await SaveChangesAsync();
+        return user;
     }
 }
