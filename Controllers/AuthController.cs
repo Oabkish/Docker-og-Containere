@@ -25,6 +25,19 @@ public class AuthController(AuthService authService) : ControllerBase
         return Ok(user);
     }
 
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            return BadRequest("Username and password are required.");
+
+        var response = await authService.LoginAsync(request);
+        if (response is null)
+            return Unauthorized("Invalid username or password.");
+
+        return Ok(response);
+    }
+
     [Authorize]
     [HttpGet("me")]
     public IActionResult Me()
